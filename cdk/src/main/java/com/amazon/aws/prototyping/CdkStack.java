@@ -2,12 +2,12 @@ package com.amazon.aws.prototyping;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.Transformer;
 
 import com.amazon.aws.prototyping.apigateway.DocumentDbFunction;
 import com.amazon.aws.prototyping.apigateway.DynamoDBFunction;
@@ -44,7 +44,6 @@ import software.amazon.awscdk.services.dynamodb.StreamViewType;
 import software.amazon.awscdk.services.dynamodb.Table;
 import software.amazon.awscdk.services.ec2.AmazonLinuxGeneration;
 import software.amazon.awscdk.services.ec2.AmazonLinuxImage;
-import software.amazon.awscdk.services.ec2.ISubnet;
 import software.amazon.awscdk.services.ec2.Instance;
 import software.amazon.awscdk.services.ec2.InstanceClass;
 import software.amazon.awscdk.services.ec2.InstanceSize;
@@ -83,8 +82,8 @@ public class CdkStack extends Stack {
     public CdkStack(final Construct scope, final String id, final StackProps props) {
         super(scope, id, props);
 
-        StageOptions deployOptions = StageOptions.builder().loggingLevel(MethodLoggingLevel.INFO).dataTraceEnabled(true)
-                .build();
+        StageOptions deployOptions =
+                StageOptions.builder().loggingLevel(MethodLoggingLevel.INFO).dataTraceEnabled(true).build();
         RestApi api = RestApi.Builder.create(this, "JavaSamplesRestApi").deployOptions(deployOptions).build();
 
         List<SubnetConfiguration> subnetConfigurations = Arrays.asList(
@@ -153,8 +152,8 @@ public class CdkStack extends Stack {
         dynamodbResource.addMethod("PUT", LambdaIntegration.Builder.create(putFunction).proxy(true).build());
 
         Function streamFunction = createFunction(DynamoDBStreamFunction.class, "handle");
-        DynamoEventSource eventSource = DynamoEventSource.Builder.create(table)
-                .startingPosition(StartingPosition.LATEST).build();
+        DynamoEventSource eventSource =
+                DynamoEventSource.Builder.create(table).startingPosition(StartingPosition.LATEST).build();
         streamFunction.addEventSource(eventSource);
     }
 
@@ -165,12 +164,12 @@ public class CdkStack extends Stack {
                 .instanceType(InstanceType.of(InstanceClass.BURSTABLE2, InstanceSize.MICRO)).vpc(vpc).build();
 
         PolicyStatement describeInstancesPolicy = PolicyStatement.Builder.create().effect(Effect.ALLOW)
-                .actions(Arrays.asList("ec2:describeInstances")).resources(Arrays.asList("*")).build();
+                .actions(Collections.singletonList("ec2:describeInstances")).resources(Arrays.asList("*")).build();
 
         Function startFunction = createFunction(EC2Function.class, "startAndWait", Duration.minutes(3), null);
         startFunction.addEnvironment("INSTANCE_ID", instance.getInstanceId());
         startFunction.addToRolePolicy(PolicyStatement.Builder.create().effect(Effect.ALLOW)
-                .actions(Arrays.asList("ec2:startInstances")).resources(Arrays.asList(String
+                .actions(Collections.singletonList("ec2:startInstances")).resources(Arrays.asList(String
                         .format("arn:aws:ec2:%s:%s:instance/%s", getRegion(), getAccount(), instance.getInstanceId())))
                 .build());
         startFunction.addToRolePolicy(describeInstancesPolicy);
@@ -178,7 +177,7 @@ public class CdkStack extends Stack {
         Function stopFunction = createFunction(EC2Function.class, "stopAndWait", Duration.minutes(3), null);
         stopFunction.addEnvironment("INSTANCE_ID", instance.getInstanceId());
         stopFunction.addToRolePolicy(PolicyStatement.Builder.create().effect(Effect.ALLOW)
-                .actions(Arrays.asList("ec2:stopInstances")).resources(Arrays.asList(String
+                .actions(Collections.singletonList("ec2:stopInstances")).resources(Arrays.asList(String
                         .format("arn:aws:ec2:%s:%s:instance/%s", getRegion(), getAccount(), instance.getInstanceId())))
                 .build());
         stopFunction.addToRolePolicy(describeInstancesPolicy);
@@ -202,11 +201,12 @@ public class CdkStack extends Stack {
     }
 
     private void createRdbSample(RestApi api, Vpc vpc) {
-        Secret secret = Secret.Builder.create(this, "RdsSampleUserPassword")
-                .generateSecretString(
-                        SecretStringGenerator.builder().secretStringTemplate(String.format("{\"username\": \"test\"}"))
+        Secret secret =
+                Secret.Builder.create(this, "RdsSampleUserPassword")
+                        .generateSecretString(SecretStringGenerator.builder()
+                                .secretStringTemplate(String.format("{\"username\": \"test\"}"))
                                 .generateStringKey("password").excludePunctuation(true).build())
-                .build();
+                        .build();
 
         String databaseName = "sample";
         SecurityGroup rdsSecurityGroup = SecurityGroup.Builder.create(this, "SampleRdsSecurityGroup").vpc(vpc).build();
@@ -239,13 +239,12 @@ public class CdkStack extends Stack {
 
     private void createDocumentDbSample(RestApi api, Vpc vpc) {
         Secret secret = Secret.Builder.create(this, "DocumentDbSampleUserPassword")
-                .generateSecretString(
-                        SecretStringGenerator.builder().secretStringTemplate(String.format("{\"username\": \"test\"}"))
-                                .generateStringKey("password").excludePunctuation(true).build())
+                .generateSecretString(SecretStringGenerator.builder().secretStringTemplate("{\"username\": \"test\"}")
+                        .generateStringKey("password").excludePunctuation(true).build())
                 .build();
 
-        SecurityGroup securityGroup = SecurityGroup.Builder.create(this, "SampleDocumentDBSecurityGroup").vpc(vpc)
-                .build();
+        SecurityGroup securityGroup =
+                SecurityGroup.Builder.create(this, "SampleDocumentDBSecurityGroup").vpc(vpc).build();
         securityGroup.addIngressRule(Peer.ipv4(vpc.getVpcCidrBlock()), Port.tcp(27017));
 
         Map<String, String> parameterMap = new HashMap<>();
@@ -255,13 +254,8 @@ public class CdkStack extends Stack {
                 .description("DBParameterGroup for SampleDocumentDBCluster").family("docdb3.6").parameters(parameterMap)
                 .build();
 
-        List<String> subnetIds = new ArrayList<>(
-                CollectionUtils.collect(vpc.getPrivateSubnets(), new Transformer<ISubnet, String>() {
-                    @Override
-                    public String transform(ISubnet subnet) {
-                        return subnet.getSubnetId();
-                    }
-                }));
+        List<String> subnetIds =
+                new ArrayList<>(CollectionUtils.collect(vpc.getPrivateSubnets(), (subnet) -> subnet.getSubnetId()));
         // both db subnet group name and cluster name need to be lower case, because it
         // is changed to lower case by cdk for some reason.
         CfnDBSubnetGroup subnetGroup = CfnDBSubnetGroup.Builder.create(this, "SampleDocumentDBSubnetGroup")
@@ -271,7 +265,7 @@ public class CdkStack extends Stack {
         CfnDBCluster cluster = CfnDBCluster.Builder.create(this, "SampleDocumentDBCluster")
                 .dbClusterIdentifier("sample-document-db-cluster").dbClusterParameterGroupName(parameterGroup.getName())
                 .dbSubnetGroupName(subnetGroup.getDbSubnetGroupName())
-                .vpcSecurityGroupIds(Arrays.asList(securityGroup.getSecurityGroupId()))
+                .vpcSecurityGroupIds(Collections.singletonList(securityGroup.getSecurityGroupId()))
                 .masterUsername(secret.secretValueFromJson("username").toString())
                 .masterUserPassword(secret.secretValueFromJson("password").toString()).build();
         cluster.addDependsOn(subnetGroup);
@@ -290,12 +284,12 @@ public class CdkStack extends Stack {
             secret.grantRead(function);
         }
 
-        Resource documentdbResource = api.getRoot().addResource("documentdb");
-        documentdbResource.addResource("insert").addMethod("POST",
+        Resource documentDbResource = api.getRoot().addResource("documentdb");
+        documentDbResource.addResource("insert").addMethod("POST",
                 LambdaIntegration.Builder.create(insertFunction).proxy(true).build());
-        documentdbResource.addResource("delete").addMethod("POST",
+        documentDbResource.addResource("delete").addMethod("POST",
                 LambdaIntegration.Builder.create(deleteFunction).proxy(true).build());
-        documentdbResource.addResource("find").addMethod("GET",
+        documentDbResource.addResource("find").addMethod("GET",
                 LambdaIntegration.Builder.create(findFunction).proxy(true).build());
     }
 
@@ -311,8 +305,8 @@ public class CdkStack extends Stack {
 
         Function function = createFunction(KinesisConsumeFunction.class, "handle");
 
-        KinesisEventSource eventSource = KinesisEventSource.Builder.create(stream)
-                .startingPosition(StartingPosition.TRIM_HORIZON).build();
+        KinesisEventSource eventSource =
+                KinesisEventSource.Builder.create(stream).startingPosition(StartingPosition.TRIM_HORIZON).build();
         function.addEventSource(eventSource);
     }
 

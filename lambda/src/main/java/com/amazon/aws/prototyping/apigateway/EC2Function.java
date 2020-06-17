@@ -33,7 +33,7 @@ public class EC2Function extends AbstractFunction {
         EC2.stopInstances(new StopInstancesRequest().withInstanceIds(INSTANCE_ID));
 
         Waiter<DescribeInstancesRequest> waiter = EC2.waiters().instanceStopped();
-        System.out.println("waiting for stoping ...");
+        System.out.println("waiting for stopping ...");
         waiter.run(new WaiterParameters<>(new DescribeInstancesRequest().withInstanceIds(INSTANCE_ID)));
         System.out.println("done");
 

@@ -1,6 +1,6 @@
 package com.amazon.aws.prototyping.apigateway;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,16 +28,16 @@ public class DynamoDBFunction extends AbstractFunction {
     // https://docs.aws.amazon.com/ja_jp/amazondynamodb/latest/developerguide/GettingStarted.Java.html
 
     private static final String TABLE_NAME = System.getenv("TABLE_NAME");
-    private static final String INDED_NAME = System.getenv("INDEX_NAME");
+    private static final String INDEX_NAME = System.getenv("INDEX_NAME");
 
-    private static final com.amazonaws.services.dynamodbv2.document.DynamoDB DYNAMODB = new com.amazonaws.services.dynamodbv2.document.DynamoDB(
-            AmazonDynamoDBClientBuilder.defaultClient());
+    private static final com.amazonaws.services.dynamodbv2.document.DynamoDB DYNAMODB =
+            new com.amazonaws.services.dynamodbv2.document.DynamoDB(AmazonDynamoDBClientBuilder.defaultClient());
 
     public APIGatewayProxyResponseEvent get(APIGatewayProxyRequestEvent event, Context context) {
         {
             System.out.println("--- Scan ---");
-            ItemCollection<ScanOutcome> items = DYNAMODB.getTable(TABLE_NAME)
-                    .scan(new ScanSpec().withMaxResultSize(10));
+            ItemCollection<ScanOutcome> items =
+                    DYNAMODB.getTable(TABLE_NAME).scan(new ScanSpec().withMaxResultSize(10));
             for (Item item : items) {
                 System.out.println(item);
             }
@@ -60,7 +60,7 @@ public class DynamoDBFunction extends AbstractFunction {
         }
         {
             System.out.println("--- Query by Index ---");
-            ItemCollection<QueryOutcome> items = DYNAMODB.getTable(TABLE_NAME).getIndex(INDED_NAME)
+            ItemCollection<QueryOutcome> items = DYNAMODB.getTable(TABLE_NAME).getIndex(INDEX_NAME)
                     .query(new QuerySpec().withKeyConditionExpression("#ttl = :title")
                             .withNameMap(new NameMap().with("#ttl", "title"))
                             .withValueMap(new ValueMap().withString(":title", "Spider-Man")));
@@ -81,9 +81,9 @@ public class DynamoDBFunction extends AbstractFunction {
             throw new RuntimeException(e);
         }
 
-        HashMap<String, Object> info = new HashMap<String, Object>();
+        HashMap<String, Object> info = new HashMap<>();
         info.put("rating", RandomUtils.nextDouble(0, 10));
-        info.put("actors", Arrays.asList(RandomStringUtils.randomAlphanumeric(10)));
+        info.put("actors", Collections.singletonList(RandomStringUtils.randomAlphanumeric(10)));
         movie.setInfo(info);
 
         DYNAMODB.getTable(TABLE_NAME).putItem(new Item()

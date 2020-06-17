@@ -35,7 +35,7 @@ public class JsonFunction extends AbstractFunction {
     public APIGatewayProxyResponseEvent serialize(APIGatewayProxyRequestEvent event, Context context) {
         Map<String, Object> map = new HashMap<>();
         map.put("name", "example");
-        map.put("contries", Arrays.asList("japan", "usa"));
+        map.put("countries", Arrays.asList("japan", "usa"));
 
         try {
             String json = new ObjectMapper().writeValueAsString(map);
