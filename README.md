@@ -18,7 +18,8 @@ It contains:
 2. `mvn install` package lambda source files into jar and install to maven local repository
 3. `cd ../cdk`
 4. `mvn compile`     compile cdk source files
-5. `cdk deploy`      deploy resources via cdk
+5. `cdk bootstrap`   deploy bootstrap stack (If you deploy first at region)
+6. `cdk deploy`      deploy resources via cdk
 
 ## License
 
