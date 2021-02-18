@@ -35,7 +35,7 @@
     </build>
     <properties>
         <aws.sdk.version>1.11.695</aws.sdk.version>
-        <jackson.version>2.10.1</jackson.version>
+        <jackson.version>2.12.1</jackson.version>
     </properties>
     <dependencies>
         <dependency>
